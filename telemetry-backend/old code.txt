@@ -1,0 +1,286 @@
+// ============================================================
+//  CrashGuard — WiFi Test Firmware
+//  TTGO T-Call ESP32
+//  Sends GPS + MPU6050 data every 1 second over WiFi
+// ============================================================
+
+#include <Arduino.h>
+#include <Wire.h>
+#include "I2Cdev.h"
+#include "MPU6050.h"
+#include <TinyGPSPlus.h>
+#include <HardwareSerial.h>
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <ArduinoJson.h>
+
+// ============================================================
+//  CONFIG — fill these in
+// ============================================================
+const char* WIFI_SSID   = "Test";
+const char* WIFI_PASS   = "test1234";
+
+// REPLACE "192.168.X.X" WITH YOUR MAC'S ACTUAL LOCAL IP ADDRESS
+const char* BACKEND_URL = "http://10.165.0.61:5005/api/telemetry";
+// ============================================================
+
+// ── PINS ────────────────────────────────────────────────────
+#define I2C_SDA      21
+#define I2C_SCL      22
+#define GPS_RX_PIN   33
+#define GPS_TX_PIN   32
+#define GPS_BAUD     9600
+#define LED_PIN      13
+
+// ── OBJECTS ─────────────────────────────────────────────────
+MPU6050        mpu;
+TinyGPSPlus    gps;
+HardwareSerial GPSSerial(1);
+
+// ── DEVICE ID ───────────────────────────────────────────────
+String DEVICE_ID = "VX-9902"; // Hardcoded to match your backend exactly
+
+// ── PEAK VALUES for 1s window ────────────────────────────────
+float peakGforce   = 0.0;
+float peakVelocity = 0.0;  // km/h from GPS
+
+// ── TIMING ──────────────────────────────────────────────────
+unsigned long windowStart  = 0;
+const int     SEND_INTERVAL = 1000; // 1 second
+
+// ── GPS LAST VALUES ─────────────────────────────────────────
+float currentLat  = 0.0;
+float currentLng  = 0.0;
+float currentAlt  = 0.0;
+int   currentSats = 0;
+bool  gpsFixed    = false;
+
+// ============================================================
+//  WIFI CONNECT
+// ============================================================
+void connectWiFi() {
+  Serial.print("[WiFi] Connecting to ");
+  Serial.print(WIFI_SSID);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+
+  int attempts = 0;
+  while (WiFi.status() != WL_CONNECTED && attempts < 30) {
+    delay(500);
+    Serial.print(".");
+    attempts++;
+  }
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println();
+    Serial.print("[WiFi] Connected! IP: ");
+    Serial.println(WiFi.localIP());
+  } else {
+    Serial.println();
+    Serial.println("[WiFi] FAILED — will retry in loop");
+  }
+}
+
+// ============================================================
+//  SEND POST REQUEST - FIXED DNS ISSUE
+// ============================================================
+void sendData(float peak_g, float velocity, float lat, float lng,
+              float altitude, int satellites, float ax, float ay, float az) {
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("[HTTP] No WiFi — skipping send");
+    return;
+  }
+
+  // Build JSON matching the exact format required by backend
+  StaticJsonDocument<512> doc;
+  doc["device_id"] = DEVICE_ID;
+  
+  // IMU data
+  JsonObject imu = doc.createNestedObject("imu");
+  imu["peak_g"]  = peak_g;
+  imu["accel_x"] = ax;
+  imu["accel_y"] = ay;
+  imu["accel_z"] = az;
+  
+  // GPS data
+  JsonObject gpsData = doc.createNestedObject("gps");
+  gpsData["velocity_kmh"] = velocity;
+  gpsData["latitude"]     = lat;
+  gpsData["longitude"]    = lng;
+  gpsData["altitude_m"]   = altitude;
+  gpsData["satellites"]   = satellites;
+  gpsData["fixed"]        = gpsFixed;
+
+  String payload;
+  serializeJson(doc, payload);
+
+  // Debug: print the JSON being sent
+  Serial.println("[HTTP] Sending Payload:");
+  Serial.println(payload);
+
+  // Create WiFiClient
+  WiFiClient client;
+  
+  // Send POST request - FIXED: Parse URL properly
+  HTTPClient http;
+  
+  // Extract IP and port from BACKEND_URL
+  String url = String(BACKEND_URL);
+  
+  // Use begin() with client parameter for better compatibility
+  http.begin(client, url);
+  http.addHeader("Content-Type", "application/json");
+  http.setTimeout(5000); // 5 second timeout
+  
+  int code = http.POST(payload);
+  
+  if (code > 0) {
+    Serial.printf("[HTTP] Response Code: %d\n", code);
+    String response = http.getString();
+    Serial.println("[HTTP] Response: " + response);
+  } else {
+    Serial.printf("[HTTP] Failed! Error: %s\n", http.errorToString(code).c_str());
+  }
+  
+  http.end();
+}
+
+// ============================================================
+//  SETUP
+// ============================================================
+void setup() {
+  Serial.begin(115200);
+  delay(500);
+
+  Serial.println("============================================");
+  Serial.println("  CrashGuard — WiFi Test Firmware");
+  Serial.println("  T-Call ESP32");
+  Serial.println("============================================");
+
+  // ── LED ──
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, HIGH);
+  delay(300);
+  digitalWrite(LED_PIN, LOW);
+
+  // ── Device ID ──
+  // (Optional) Uncomment below to use dynamic MAC address as Device ID
+  /*
+  uint8_t mac[6];
+  esp_read_mac(mac, ESP_MAC_WIFI_STA);
+  char macStr[13];
+  snprintf(macStr, sizeof(macStr), "%02X%02X%02X%02X%02X%02X",
+           mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+  DEVICE_ID = String("ESP32_") + macStr;
+  */
+  
+  Serial.println("[INIT] Device ID: " + DEVICE_ID);
+
+  // ── MPU6050 ──
+  Wire.begin(I2C_SDA, I2C_SCL);
+  mpu.initialize();
+  if (mpu.testConnection()) {
+    Serial.println("[MPU] MPU6050 OK!");
+  } else {
+    Serial.println("[MPU] MPU6050 FAILED — check wiring GPIO21/22");
+  }
+  // Set sensitivity: +/- 2g range = 16384 LSB/g
+  mpu.setFullScaleAccelRange(MPU6050_ACCEL_FS_2);
+  mpu.setFullScaleGyroRange(MPU6050_GYRO_FS_250);
+
+  // ── GPS ──
+  GPSSerial.begin(GPS_BAUD, SERIAL_8N1, GPS_RX_PIN, GPS_TX_PIN);
+  Serial.println("[GPS] GPS started on GPIO25(RX) / GPIO26(TX)");
+
+  // ── WiFi ──
+  connectWiFi();
+
+  // ── Init window timer ──
+  windowStart = millis();
+
+  Serial.println("[INIT] All systems go. Sampling...");
+  Serial.println("============================================");
+}
+
+// ============================================================
+//  LOOP
+// ============================================================
+void loop() {
+
+  // ── 1. Feed GPS parser continuously ──────────────────────
+  while (GPSSerial.available() > 0) {
+    gps.encode(GPSSerial.read());
+  }
+
+  // Update GPS values whenever new data arrives
+  if (gps.location.isUpdated()) {
+    currentLat = gps.location.lat();
+    currentLng = gps.location.lng();
+    gpsFixed   = true;
+  }
+  if (gps.altitude.isUpdated()) currentAlt  = gps.altitude.meters();
+  if (gps.satellites.isUpdated()) currentSats = gps.satellites.value();
+
+  // GPS speed — track peak within the window
+  if (gps.speed.isValid()) {
+    float spd = gps.speed.kmph();
+    if (spd > peakVelocity) peakVelocity = spd;
+  }
+
+  // ── 2. Sample MPU6050 as fast as possible ────────────────
+  //    Track the PEAK resultant G-force within the 1s window
+  int16_t ax_raw, ay_raw, az_raw, gx_raw, gy_raw, gz_raw;
+  mpu.getMotion6(&ax_raw, &ay_raw, &az_raw, &gx_raw, &gy_raw, &gz_raw);
+
+  float ax_g = ax_raw / 16384.0;
+  float ay_g = ay_raw / 16384.0;
+  float az_g = az_raw / 16384.0;
+  float resultant = sqrt(ax_g * ax_g + ay_g * ay_g + az_g * az_g);
+
+  // Keep the highest G-force seen this window
+  if (resultant > peakGforce) {
+    peakGforce = resultant;
+  }
+
+  // ── 3. Every 1 second — send data and reset peaks ────────
+  if (millis() - windowStart >= SEND_INTERVAL) {
+
+    // Print to serial dashboard
+    Serial.println("──────────────────────────────────────");
+    Serial.printf("[IMU]  Peak G-force : %.3f g\n",     peakGforce);
+    Serial.printf("[IMU]  Accel X/Y/Z  : %.3f / %.3f / %.3f g\n", ax_g, ay_g, az_g);
+    Serial.printf("[GPS]  Velocity     : %.2f km/h\n",  peakVelocity);
+    Serial.printf("[GPS]  Location     : %.4f, %.4f\n", currentLat, currentLng);
+    Serial.printf("[GPS]  Altitude     : %.1f m\n",     currentAlt);
+    Serial.printf("[GPS]  Satellites   : %d\n",         currentSats);
+    Serial.printf("[GPS]  Fixed        : %s\n",         gpsFixed ? "YES" : "NO");
+    Serial.printf("[NET]  WiFi         : %s\n",         WiFi.status() == WL_CONNECTED ? "CONNECTED" : "DISCONNECTED");
+    Serial.println("──────────────────────────────────────");
+
+    // Send POST Request
+    sendData(
+      peakGforce,
+      peakVelocity,
+      currentLat,
+      currentLng,
+      currentAlt,
+      currentSats,
+      ax_g, ay_g, az_g
+    );
+
+    // LED blink to confirm send
+    digitalWrite(LED_PIN, HIGH);
+    delay(50);
+    digitalWrite(LED_PIN, LOW);
+
+    // Reconnect WiFi if dropped
+    if (WiFi.status() != WL_CONNECTED) {
+      Serial.println("[WiFi] Reconnecting...");
+      connectWiFi();
+    }
+
+    // Reset peaks for next window
+    peakGforce   = 0.0;
+    peakVelocity = 0.0;
+    windowStart  = millis();
+  }
+}
