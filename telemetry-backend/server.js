@@ -3,6 +3,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const twilio = require('twilio');
+const telnyx = require('telnyx');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
@@ -45,6 +46,11 @@ const PORT = process.env.PORT || 5000;
 // ============ TWILIO SETUP ============
 const twilioClient = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN
   ? twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+  : null;
+
+// ============ TELNYX SETUP ============
+const telnyxClient = process.env.TELNYX_API_KEY
+  ? telnyx(process.env.TELNYX_API_KEY)
   : null;
 
 // ============ MONGODB SETUP ============
@@ -129,6 +135,7 @@ const profileSchema = new mongoose.Schema({
   email: String,
   emergencyNumber: { type: String, default: '' },
   hasCrashed: { type: Boolean, default: false },
+  lastSmsSentAt: { type: Date, default: null },
   updatedAt: { type: Date, default: Date.now }
 });
 const Profile = mongoose.model('Profile', profileSchema);
@@ -240,25 +247,45 @@ app.post('/api/telemetry', async (req, res) => {
     });
     await newLog.save();
 
-    if (spikeDetected && deltaG >= 7 && twilioClient) {
+    if (spikeDetected && deltaG >= 7) {
       const profile = await Profile.findOne({ deviceId: data.device_id });
       if (profile && profile.emergencyNumber && !profile.hasCrashed) {
-        console.log(`🚨 [CRASH DETECTED] Calling ${profile.emergencyNumber}...`);
         profile.hasCrashed = true;
         await profile.save();
 
-        try {
-          await twilioClient.calls.create({
-            twiml: `<Response>
-                      <Say voice="alice">Emergency Alert. Vehicle ${data.device_id} driven by ${profile.driverName} has experienced a sudden impact spike of ${deltaG.toFixed(1)} G change, classified as ${severity}.</Say>
-                      <Say voice="alice">Last known GPS coordinates are Latitude ${data.gps.latitude}, Longitude ${data.gps.longitude}. Please dispatch help immediately.</Say>
-                    </Response>`,
-            to: profile.emergencyNumber,
-            from: process.env.TWILIO_PHONE_NUMBER
-          });
-          console.log(`📞 [CALL SUCCESS] Emergency call initiated.`);
-        } catch (twilioError) {
-          console.error("Twilio call failed:", twilioError.message);
+        if (twilioClient) {
+          console.log(`🚨 [CRASH DETECTED] Calling ${profile.emergencyNumber} via Twilio...`);
+          try {
+            await twilioClient.calls.create({
+              twiml: `<Response>
+                        <Say voice="alice">Emergency Alert. Vehicle ${data.device_id} driven by ${profile.driverName} has experienced a sudden impact spike of ${deltaG.toFixed(1)} G change, classified as ${severity}.</Say>
+                        <Say voice="alice">Last known GPS coordinates are Latitude ${data.gps.latitude}, Longitude ${data.gps.longitude}. Please dispatch help immediately.</Say>
+                      </Response>`,
+              to: profile.emergencyNumber,
+              from: process.env.TWILIO_PHONE_NUMBER
+            });
+            console.log(`📞 [CALL SUCCESS] Emergency call initiated.`);
+          } catch (twilioError) {
+            console.error("Twilio call failed:", twilioError.message);
+          }
+        }
+
+        if (telnyxClient && process.env.TELNYX_PHONE_NUMBER) {
+          console.log(`🚨 [CRASH DETECTED] Sending Telnyx SMS to ${profile.emergencyNumber}...`);
+          try {
+            const locationText = data.gps?.latitude && data.gps?.longitude
+              ? `GPS: ${parseFloat(data.gps.latitude).toFixed(5)}, ${parseFloat(data.gps.longitude).toFixed(5)}.`
+              : 'GPS unavailable.';
+
+            await telnyxClient.messages.create({
+              from: process.env.TELNYX_PHONE_NUMBER,
+              to: profile.emergencyNumber,
+              text: `🚨 CRASH ALERT: Vehicle ${data.device_id || 'Unknown'} detected a ${severity?.toUpperCase() || 'SEVERE'} impact of ${parseFloat(deltaG || 0).toFixed(1)}G. ${locationText} Please check on the driver immediately.`
+            });
+            console.log(`📱 [SMS SUCCESS] Telnyx alert sent.`);
+          } catch (telnyxError) {
+            console.error("Telnyx SMS failed:", telnyxError.message);
+          }
         }
       }
     }
@@ -440,6 +467,7 @@ app.post('/api/profile', authenticateToken, async (req, res) => {
           emergencyNumber: (emergencyNumber || '').replace(/\s+/g, ''),
           deviceId: trimmedDeviceId,
           hasCrashed: false,
+          lastSmsSentAt: null,
           updatedAt: new Date()
         }
       },
@@ -558,32 +586,49 @@ app.post('/api/alert/sms', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'No emergency number set in profile.' });
     }
 
-    if (!twilioClient) {
-      return res.status(500).json({ error: 'Twilio not configured on server.' });
+    if (!twilioClient && !telnyxClient) {
+      return res.status(500).json({ error: 'No SMS provider configured on server (Twilio/Telnyx).' });
     }
 
-    // Lock to prevent multiple tabs sending duplicate SMS
-    if (profile.hasCrashed) {
+    // Lock to prevent multiple tabs sending duplicate SMS (cooldown: 60 seconds)
+    const oneMinuteAgo = new Date(Date.now() - 60000);
+    if (profile.lastSmsSentAt && profile.lastSmsSentAt > oneMinuteAgo) {
       console.log(`[SMS IGNORED] SMS already sent recently for ${deviceId}. Ignoring duplicate request.`);
-      return res.status(200).json({ success: true, message: 'SMS already sent' });
+      return res.status(200).json({ success: true, message: 'SMS already sent recently' });
     }
     
-    // Mark as crashed to lock it
+    // Mark as crashed and record the SMS timestamp to lock it
     profile.hasCrashed = true;
+    profile.lastSmsSentAt = new Date();
     await profile.save();
 
     const locationText = lat && lng
       ? `GPS: ${parseFloat(lat).toFixed(5)}, ${parseFloat(lng).toFixed(5)}.`
       : 'GPS unavailable.';
 
-    const message = await twilioClient.messages.create({
-      body: `🚨 CRASH ALERT: Vehicle ${deviceId || 'Unknown'} detected a ${severity?.toUpperCase() || 'SEVERE'} impact of ${parseFloat(currentG || deltaG || 0).toFixed(1)}G. ${locationText} Please check on the driver immediately.`,
-      to: toNumber,
-      from: process.env.TWILIO_PHONE_NUMBER
-    });
+    let messageSid = '';
+    let providerUsed = '';
 
-    console.log(`📱 [SMS SUCCESS] Sent to ${toNumber} | SID: ${message.sid}`);
-    res.status(200).json({ success: true, sid: message.sid, to: toNumber });
+    if (telnyxClient && process.env.TELNYX_PHONE_NUMBER) {
+      const message = await telnyxClient.messages.create({
+        from: process.env.TELNYX_PHONE_NUMBER,
+        to: toNumber,
+        text: `🚨 CRASH ALERT: Vehicle ${deviceId || 'Unknown'} detected a ${severity?.toUpperCase() || 'SEVERE'} impact of ${parseFloat(currentG || deltaG || 0).toFixed(1)}G. ${locationText} Please check on the driver immediately.`
+      });
+      messageSid = message.data.id || message.id;
+      providerUsed = 'Telnyx';
+    } else if (twilioClient) {
+      const message = await twilioClient.messages.create({
+        body: `🚨 CRASH ALERT: Vehicle ${deviceId || 'Unknown'} detected a ${severity?.toUpperCase() || 'SEVERE'} impact of ${parseFloat(currentG || deltaG || 0).toFixed(1)}G. ${locationText} Please check on the driver immediately.`,
+        to: toNumber,
+        from: process.env.TWILIO_PHONE_NUMBER
+      });
+      messageSid = message.sid;
+      providerUsed = 'Twilio';
+    }
+
+    console.log(`📱 [SMS SUCCESS] Sent via ${providerUsed} to ${toNumber} | SID: ${messageSid}`);
+    res.status(200).json({ success: true, sid: messageSid, to: toNumber, provider: providerUsed });
 
   } catch (err) {
     console.error('SMS route error:', err.message);

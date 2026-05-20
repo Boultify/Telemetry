@@ -34,14 +34,14 @@ const LiveChart = ({ data, crashPoint }) => {
   const gridColor = theme === 'light' ? 'rgba(0,0,0,0.08)' : '#282a2d';
 
   // Calculate dynamic domain for G-Force (0 to max + buffer)
-  const maxGForce = data.length > 0 
-    ? Math.max(...data.map(d => d.gForce), 0.5) 
+  const maxGForce = data.length > 0
+    ? Math.max(...data.map(d => d.gForce), 0.5)
     : 0.5;
   const gForceDomain = [0, Math.min(maxGForce + 0.5, 25)]; // Cap at 25G
-  
+
   // Calculate dynamic domain for Velocity
-  const maxVelocity = data.length > 0 
-    ? Math.max(...data.map(d => d.velocity), 50) 
+  const maxVelocity = data.length > 0
+    ? Math.max(...data.map(d => d.velocity), 50)
     : 50;
   const velocityDomain = [0, maxVelocity + 10];
 
@@ -52,7 +52,7 @@ const LiveChart = ({ data, crashPoint }) => {
     const crashTime = new Date(crashPoint.timestamp).getTime();
     let closestPoint = null;
     let minDiff = Infinity;
-    
+
     data.forEach(point => {
       if (point.fullTimestamp) {
         const diff = Math.abs(point.fullTimestamp - crashTime);
@@ -94,7 +94,7 @@ const LiveChart = ({ data, crashPoint }) => {
       const gForceItem = payload.find(item => item.dataKey === 'gForce');
       const isCriticalPoint = gForceItem && gForceItem.value >= 15.0;
       const isSeverePoint = gForceItem && gForceItem.value >= 7.0 && gForceItem.value < 15.0;
-      
+
       const tooltipBgBorder = isCriticalPoint
         ? 'bg-red-500/20 border-red-500'
         : isSeverePoint
@@ -183,71 +183,71 @@ const LiveChart = ({ data, crashPoint }) => {
           </div>
         </div>
       </div>
-      
+
       <div style={{ width: '100%', height: '400px' }}>
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="velocityGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={primaryColor} stopOpacity={0.3}/>
-                <stop offset="95%" stopColor={primaryColor} stopOpacity={0}/>
+                <stop offset="5%" stopColor={primaryColor} stopOpacity={0.3} />
+                <stop offset="95%" stopColor={primaryColor} stopOpacity={0} />
               </linearGradient>
               <linearGradient id="gForceGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={secondaryColor} stopOpacity={0.3}/>
-                <stop offset="95%" stopColor={secondaryColor} stopOpacity={0}/>
+                <stop offset="5%" stopColor={secondaryColor} stopOpacity={0.3} />
+                <stop offset="95%" stopColor={secondaryColor} stopOpacity={0} />
               </linearGradient>
             </defs>
-            
+
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
-            
+
             {/* Left Y-Axis for Velocity */}
-            <YAxis 
+            <YAxis
               yAxisId="velocity"
               orientation="left"
               domain={velocityDomain}
               tick={{ fill: primaryColor, fontSize: 10 }}
               tickLine={false}
               axisLine={{ stroke: primaryColor, strokeWidth: 1 }}
-              label={{ 
-                value: 'KM/H', 
-                angle: -90, 
-                position: 'insideLeft', 
+              label={{
+                value: 'KM/H',
+                angle: -90,
+                position: 'insideLeft',
                 fill: primaryColor,
                 fontSize: 10,
                 dy: 50
               }}
             />
-            
+
             {/* Right Y-Axis for G-Force */}
-            <YAxis 
+            <YAxis
               yAxisId="gForce"
               orientation="right"
               domain={gForceDomain}
               tick={{ fill: secondaryColor, fontSize: 10 }}
               tickLine={false}
               axisLine={{ stroke: secondaryColor, strokeWidth: 1 }}
-              label={{ 
-                value: 'G-FORCE', 
-                angle: 90, 
-                position: 'insideRight', 
+              label={{
+                value: 'G-FORCE',
+                angle: 90,
+                position: 'insideRight',
                 fill: secondaryColor,
                 fontSize: 10,
                 dy: -50
               }}
             />
-            
+
             {/* X-Axis with better formatting */}
-            <XAxis 
-              dataKey="time" 
+            <XAxis
+              dataKey="time"
               axisLine={false}
               tickLine={false}
               tick={{ fill: '#666', fontSize: 9 }}
               interval="preserveEnd"
               minTickGap={35}
             />
-            
+
             <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#555', strokeWidth: 1, strokeDasharray: '4 4' }} />
-            
+
             {/* Area under velocity line */}
             <Area
               yAxisId="velocity"
@@ -257,7 +257,7 @@ const LiveChart = ({ data, crashPoint }) => {
               strokeWidth={0}
               fill="url(#velocityGradient)"
             />
-            
+
             {/* Velocity Line */}
             <Line
               yAxisId="velocity"
@@ -271,7 +271,7 @@ const LiveChart = ({ data, crashPoint }) => {
               animationDuration={300}
               animationEasing="ease-out"
             />
-            
+
             {/* Area under G-Force line */}
             <Area
               yAxisId="gForce"
@@ -281,7 +281,7 @@ const LiveChart = ({ data, crashPoint }) => {
               strokeWidth={0}
               fill="url(#gForceGradient)"
             />
-            
+
             {/* G-Force Line with crash dot */}
             <Line
               yAxisId="gForce"
@@ -298,7 +298,7 @@ const LiveChart = ({ data, crashPoint }) => {
           </ComposedChart>
         </ResponsiveContainer>
       </div>
-      
+
       {/* Mini stats below chart */}
       <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-border-theme">
         <div className="text-center">
@@ -343,7 +343,7 @@ export default function Dashboard() {
     if (!date) return 'Invalid Date';
     const d = new Date(date);
     if (isNaN(d.getTime())) return 'Invalid Date';
-    
+
     if (isWeekly) {
       return d.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
     }
@@ -357,7 +357,7 @@ export default function Dashboard() {
   // Fetch historical data - increased to 60 points for smoother chart
   const fetchHistoricalData = async (weeks = 0) => {
     try {
-      const url = weeks > 0 
+      const url = weeks > 0
         ? `/api/telemetry/history/${activeDeviceId}?weeks=${weeks}`
         : `/api/telemetry/history/${activeDeviceId}?limit=60`;
       const response = await api.get(url);
@@ -446,7 +446,7 @@ export default function Dashboard() {
           };
 
           setChartData(prevData => {
-            const isDuplicate = prevData.some(point => 
+            const isDuplicate = prevData.some(point =>
               Math.abs(point.fullTimestamp - newPoint.fullTimestamp) < 500
             );
 
@@ -471,10 +471,10 @@ export default function Dashboard() {
       setDataReady(true);
       return;
     }
-    
+
     setDataReady(false);
     let interval;
-    
+
     const load = async () => {
       await fetchHistoricalData(timeframe);
       await fetchLatestTelemetry();
@@ -483,11 +483,11 @@ export default function Dashboard() {
       // or just keep polling with slower interval? We will keep polling.
       interval = setInterval(fetchLatestTelemetry, 2000);
     };
-    
+
     load();
-    
-    return () => { 
-      if (interval) clearInterval(interval); 
+
+    return () => {
+      if (interval) clearInterval(interval);
     };
   }, [activeDeviceId, hasActiveDevice, timeframe]);
 
@@ -592,22 +592,22 @@ export default function Dashboard() {
             style={{ zIndex: 0, background: theme === 'light' ? '#f8f9fc' : '#1a1a1a' }}
           >
             <ChangeView center={[telemetry.gps?.latitude || 0, telemetry.gps?.longitude || 0]} zoom={15} />
-            
+
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url={theme === 'light' 
+              url={theme === 'light'
                 ? "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
                 : "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
               }
             />
-            
+
             {/* Current vehicle marker */}
             <Marker position={[telemetry.gps?.latitude || 0, telemetry.gps?.longitude || 0]}>
               <Popup>
                 <div className="text-black">
-                  <b>Vehicle: {activeDeviceId}</b><br/>
-                  Speed: {telemetry.gps?.velocity_kmh?.toFixed(1)} km/h<br/>
-                  Status: {isCrashed ? '⚠️ CRASH DETECTED' : 'NORMAL'}<br/>
+                  <b>Vehicle: {activeDeviceId}</b><br />
+                  Speed: {telemetry.gps?.velocity_kmh?.toFixed(1)} km/h<br />
+                  Status: {isCrashed ? '⚠️ CRASH DETECTED' : 'NORMAL'}<br />
                   G-Force: {telemetry.imu?.peak_g?.toFixed(2)} G
                 </div>
               </Popup>
@@ -627,9 +627,9 @@ export default function Dashboard() {
               >
                 <Popup>
                   <div className="text-black">
-                    <b className="text-red-500">⚠️ CRASH LOCATION</b><br/>
-                    Severity: <span className="font-bold uppercase">{mapCrashPoint.severity}</span><br/>
-                    Impact: {mapCrashPoint.currentG?.toFixed(2)} G<br/>
+                    <b className="text-red-500">⚠️ CRASH LOCATION</b><br />
+                    Severity: <span className="font-bold uppercase">{mapCrashPoint.severity}</span><br />
+                    Impact: {mapCrashPoint.currentG?.toFixed(2)} G<br />
                     Time: {new Date().toLocaleTimeString()}
                   </div>
                 </Popup>
@@ -692,7 +692,7 @@ export default function Dashboard() {
             {(telemetry.gps?.velocity_kmh || 0).toFixed(1)} <span className="text-sm text-outline">km/h</span>
           </p>
         </div>
-        
+
         <div className="bg-surface-container p-6 rounded-xl border border-border-theme col-span-full">
           <p className="text-xs text-outline uppercase tracking-widest mb-2">Live Coordinates</p>
           <div className="flex items-center gap-4">
@@ -703,7 +703,7 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-      
+
       {/* Timeframe selector */}
       <div className="mt-8 mb-4 flex justify-end">
         <div className="bg-surface-container rounded-lg p-1 flex gap-2 border border-border-theme">
@@ -717,9 +717,8 @@ export default function Dashboard() {
             <button
               key={tf.val}
               onClick={() => setTimeframe(tf.val)}
-              className={`px-4 py-2 text-xs font-bold rounded-md transition-all ${
-                timeframe === tf.val ? 'bg-primary text-on-primary' : 'text-outline hover:text-on-surface'
-              }`}
+              className={`px-4 py-2 text-xs font-bold rounded-md transition-all ${timeframe === tf.val ? 'bg-primary text-on-primary' : 'text-outline hover:text-on-surface'
+                }`}
             >
               {tf.label}
             </button>
@@ -729,7 +728,7 @@ export default function Dashboard() {
 
       {/* CHART with crash highlight */}
       <LiveChart data={chartData} crashPoint={graphCrashPoint} />
-      
+
       <div className="flex justify-between text-xs text-outline mt-2 flex-wrap gap-2">
         <div>📈 Showing last {chartData.length} data points ({timeframe === 0 ? '60 max' : '1000 max'})</div>
         <div>🗺️ Map auto-updates with vehicle location</div>
