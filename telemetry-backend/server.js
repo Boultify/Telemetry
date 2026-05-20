@@ -3,7 +3,6 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const twilio = require('twilio');
-const telnyx = require('telnyx');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
@@ -46,11 +45,6 @@ const PORT = process.env.PORT || 5000;
 // ============ TWILIO SETUP ============
 const twilioClient = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN
   ? twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
-  : null;
-
-// ============ TELNYX SETUP ============
-const telnyxClient = process.env.TELNYX_API_KEY
-  ? telnyx(process.env.TELNYX_API_KEY)
   : null;
 
 // ============ MONGODB SETUP ============
@@ -267,24 +261,6 @@ app.post('/api/telemetry', async (req, res) => {
             console.log(`📞 [CALL SUCCESS] Emergency call initiated.`);
           } catch (twilioError) {
             console.error("Twilio call failed:", twilioError.message);
-          }
-        }
-
-        if (telnyxClient && process.env.TELNYX_PHONE_NUMBER) {
-          console.log(`🚨 [CRASH DETECTED] Sending Telnyx SMS to ${profile.emergencyNumber}...`);
-          try {
-            const locationText = data.gps?.latitude && data.gps?.longitude
-              ? `GPS: ${parseFloat(data.gps.latitude).toFixed(5)}, ${parseFloat(data.gps.longitude).toFixed(5)}.`
-              : 'GPS unavailable.';
-
-            await telnyxClient.messages.create({
-              from: process.env.TELNYX_PHONE_NUMBER,
-              to: profile.emergencyNumber,
-              text: `🚨 CRASH ALERT: Vehicle ${data.device_id || 'Unknown'} detected a ${severity?.toUpperCase() || 'SEVERE'} impact of ${parseFloat(deltaG || 0).toFixed(1)}G. ${locationText} Please check on the driver immediately.`
-            });
-            console.log(`📱 [SMS SUCCESS] Telnyx alert sent.`);
-          } catch (telnyxError) {
-            console.error("Telnyx SMS failed:", telnyxError.message);
           }
         }
       }
@@ -586,8 +562,8 @@ app.post('/api/alert/sms', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'No emergency number set in profile.' });
     }
 
-    if (!twilioClient && !telnyxClient) {
-      return res.status(500).json({ error: 'No SMS provider configured on server (Twilio/Telnyx).' });
+    if (!twilioClient) {
+      return res.status(500).json({ error: 'Twilio not configured on server.' });
     }
 
     // Lock to prevent multiple tabs sending duplicate SMS (cooldown: 60 seconds)
@@ -606,29 +582,14 @@ app.post('/api/alert/sms', authenticateToken, async (req, res) => {
       ? `GPS: ${parseFloat(lat).toFixed(5)}, ${parseFloat(lng).toFixed(5)}.`
       : 'GPS unavailable.';
 
-    let messageSid = '';
-    let providerUsed = '';
+    const message = await twilioClient.messages.create({
+      body: `🚨 CRASH ALERT: Vehicle ${deviceId || 'Unknown'} detected a ${severity?.toUpperCase() || 'SEVERE'} impact of ${parseFloat(currentG || deltaG || 0).toFixed(1)}G. ${locationText} Please check on the driver immediately.`,
+      to: toNumber,
+      from: process.env.TWILIO_PHONE_NUMBER
+    });
 
-    if (telnyxClient && process.env.TELNYX_PHONE_NUMBER) {
-      const message = await telnyxClient.messages.create({
-        from: process.env.TELNYX_PHONE_NUMBER,
-        to: toNumber,
-        text: `🚨 CRASH ALERT: Vehicle ${deviceId || 'Unknown'} detected a ${severity?.toUpperCase() || 'SEVERE'} impact of ${parseFloat(currentG || deltaG || 0).toFixed(1)}G. ${locationText} Please check on the driver immediately.`
-      });
-      messageSid = message.data.id || message.id;
-      providerUsed = 'Telnyx';
-    } else if (twilioClient) {
-      const message = await twilioClient.messages.create({
-        body: `🚨 CRASH ALERT: Vehicle ${deviceId || 'Unknown'} detected a ${severity?.toUpperCase() || 'SEVERE'} impact of ${parseFloat(currentG || deltaG || 0).toFixed(1)}G. ${locationText} Please check on the driver immediately.`,
-        to: toNumber,
-        from: process.env.TWILIO_PHONE_NUMBER
-      });
-      messageSid = message.sid;
-      providerUsed = 'Twilio';
-    }
-
-    console.log(`📱 [SMS SUCCESS] Sent via ${providerUsed} to ${toNumber} | SID: ${messageSid}`);
-    res.status(200).json({ success: true, sid: messageSid, to: toNumber, provider: providerUsed });
+    console.log(`📱 [SMS SUCCESS] Sent to ${toNumber} | SID: ${message.sid}`);
+    res.status(200).json({ success: true, sid: message.sid, to: toNumber });
 
   } catch (err) {
     console.error('SMS route error:', err.message);
