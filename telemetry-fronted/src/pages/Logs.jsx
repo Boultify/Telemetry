@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../utils/api';
 import { useFleet } from '../context/FleetContext';
+import { useTheme } from '../context/ThemeContext';
 import DeviceSetupRequired from '../components/DeviceSetupRequired';
 import { MapContainer, TileLayer, Marker, Popup, useMap, CircleMarker } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -23,6 +24,7 @@ function ChangeView({ center, zoom }) {
 
 export default function Logs() {
   const { activeDeviceId, hasActiveDevice, loading: fleetLoading } = useFleet();
+  const { theme } = useTheme();
   const [logs, setLogs] = useState([]);
   const [selectedLog, setSelectedLog] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -74,40 +76,40 @@ export default function Logs() {
   }
 
   return (
-    <div className="flex flex-col h-full w-full max-w-[1600px] mx-auto overflow-hidden text-on-surface">
-      <div className="p-8 pb-4 shrink-0">
+    <div className="flex flex-col lg:h-full w-full max-w-[1600px] mx-auto lg:overflow-hidden text-on-surface">
+      <div className="p-4 md:p-8 pb-4 shrink-0">
         <h1 className="font-headline text-3xl font-black tracking-tighter uppercase">Incident Archive</h1>
         <p className="text-xs text-outline font-medium tracking-wide mt-1">
           Review of recent high-impact telemetry data points
         </p>
       </div>
 
-      <div className="flex-1 px-8 pb-8 flex flex-col lg:flex-row gap-6 overflow-hidden">
-        <div className="flex-1 bg-surface-container-lowest border border-outline-variant/10 rounded-xl flex flex-col overflow-hidden shadow-2xl">
-          <div className="p-4 border-b border-outline-variant/10 flex justify-between items-center bg-surface-container-low shrink-0">
+      <div className="flex-1 px-4 md:px-8 pb-8 flex flex-col lg:flex-row gap-6 lg:overflow-hidden">
+        <div className="flex-1 bg-surface-container-lowest border border-border-theme rounded-xl flex flex-col lg:overflow-hidden shadow-2xl">
+          <div className="p-4 border-b border-border-theme flex justify-between items-center bg-surface-container-low shrink-0">
             <h3 className="text-sm font-bold uppercase tracking-widest">Event Log</h3>
             <span className="text-[10px] font-bold text-outline uppercase tracking-widest">
               Showing {logs.length} Recent Events
             </span>
           </div>
 
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 lg:overflow-auto min-h-[300px] lg:min-h-0">
             <table className="w-full text-left border-collapse">
-              <thead className="sticky top-0 z-10 bg-surface-container-lowest border-b border-outline-variant/10">
+              <thead className="sticky top-0 z-10 bg-surface-container-lowest border-b border-border-theme">
                 <tr>
                   <th className="px-6 py-4 text-[9px] font-black text-outline uppercase tracking-[0.2em]">Timestamp</th>
                   <th className="px-6 py-4 text-[9px] font-black text-outline uppercase tracking-[0.2em]">Event Type</th>
                   <th className="px-6 py-4 text-[9px] font-black text-outline uppercase tracking-[0.2em]">Magnitude</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-outline-variant/5">
+              <tbody className="divide-y divide-border-theme/40">
                 {logs.length > 0 ? logs.map((log) => {
                   const incident = getIncidentType(log.imu.peak_g);
                   return (
                     <tr 
                       key={log._id} 
                       onClick={() => setSelectedLog(log)}
-                      className={`cursor-pointer transition-colors ${selectedLog?._id === log._id ? 'bg-primary/10 border-l-2 border-primary' : 'hover:bg-primary/5 border-l-2 border-transparent'}`}
+                      className={`cursor-pointer transition-colors ${selectedLog?._id === log._id ? 'bg-primary-opacity-10 border-l-2 border-primary' : 'hover:bg-primary-opacity-5 border-l-2 border-transparent'}`}
                     >
                       <td className="px-6 py-4 text-[11px] font-mono text-on-surface">{new Date(log.timestamp).toLocaleTimeString()}</td>
                       <td className="px-6 py-4">
@@ -133,15 +135,15 @@ export default function Logs() {
 
         {/* Details Preview Panel */}
         {selectedLog && (
-          <div className="w-full lg:w-96 shrink-0 bg-surface-container border border-outline-variant/10 rounded-xl flex flex-col overflow-hidden shadow-2xl">
-            <div className="p-5 border-b border-outline-variant/10 flex items-center justify-between shrink-0">
+          <div className="w-full lg:w-96 shrink-0 bg-surface-container border border-border-theme rounded-xl flex flex-col lg:overflow-hidden shadow-2xl">
+            <div className="p-5 border-b border-border-theme flex items-center justify-between shrink-0">
               <h3 className="font-headline font-bold text-sm uppercase tracking-widest">Event Detail</h3>
               <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter ${getIncidentType(selectedLog.imu?.peak_g || 0).color.replace('text-','bg-')}/30 ${getIncidentType(selectedLog.imu?.peak_g || 0).color}`}>
                 {getIncidentType(selectedLog.imu?.peak_g || 0).text}
               </span>
             </div>
             
-            <div className="flex-1 overflow-auto">
+            <div className="flex-1 lg:overflow-auto">
               <div className="p-6 space-y-6">
                 <div>
                   <p className="text-[9px] font-bold text-outline uppercase tracking-[0.2em] mb-2">Event Timestamp</p>
@@ -151,13 +153,13 @@ export default function Logs() {
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-surface-container-low p-3 rounded border border-outline-variant/5">
+                  <div className="bg-surface-container-low p-3 rounded border border-border-theme">
                     <p className="text-[8px] font-bold text-outline uppercase mb-1">Peak Force</p>
                     <p className={`text-lg font-headline font-bold ${getIncidentType(selectedLog.imu?.peak_g || 0).color}`}>
                       {selectedLog.imu?.peak_g?.toFixed(3) ?? '0.000'} G
                     </p>
                   </div>
-                  <div className="bg-surface-container-low p-3 rounded border border-outline-variant/5">
+                  <div className="bg-surface-container-low p-3 rounded border border-border-theme">
                     <p className="text-[8px] font-bold text-outline uppercase mb-1">Velocity</p>
                     <p className="text-lg font-headline font-bold text-on-surface">
                       {selectedLog.gps?.velocity_kmh?.toFixed(1) ?? 'N/A'} KM/H
@@ -165,7 +167,7 @@ export default function Logs() {
                   </div>
                 </div>
                 
-                <div className="space-y-4 pt-4 border-t border-outline-variant/10">
+                <div className="space-y-4 pt-4 border-t border-border-theme">
                   <div className="flex justify-between items-center">
                     <span className="text-[10px] font-bold text-outline uppercase">Location</span>
                     <span className="text-[10px] font-mono text-on-surface">
@@ -188,18 +190,21 @@ export default function Logs() {
 
                 {/* Map Viewer */}
                 {selectedLog.gps?.latitude && selectedLog.gps?.longitude ? (
-                  <div className="mt-4 border border-outline-variant/10 rounded-xl overflow-hidden h-48 w-full relative">
+                  <div className="mt-4 border border-border-theme rounded-xl overflow-hidden h-48 w-full relative">
                     <MapContainer
                       center={[selectedLog.gps.latitude, selectedLog.gps.longitude]}
                       zoom={15}
                       scrollWheelZoom={true}
                       className="h-full w-full"
-                      style={{ zIndex: 0, background: '#1a1a1a' }}
+                      style={{ zIndex: 0, background: theme === 'light' ? '#f8f9fc' : '#1a1a1a' }}
                     >
                       <ChangeView center={[selectedLog.gps.latitude, selectedLog.gps.longitude]} zoom={15} />
                       <TileLayer
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                        url={theme === 'light' 
+                          ? "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+                          : "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                        }
                       />
                       <Marker position={[selectedLog.gps.latitude, selectedLog.gps.longitude]}>
                         <Popup>

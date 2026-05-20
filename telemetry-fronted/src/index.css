@@ -9,10 +9,112 @@
   font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
 
+:root {
+  /* Dark mode values by default */
+  --background: #111316;
+  --surface: #111316;
+  --surface-container-lowest: #0c0e11;
+  --surface-container-low: #1a1c1f;
+  --surface-container: #1e2023;
+  --surface-container-high: #282a2d;
+  --surface-container-highest: #333538;
+  --surface-bright: #37393d;
+  --surface-dim: #111316;
+  
+  --on-surface: #e2e2e6;
+  --on-background: #e2e2e6;
+  
+  --primary: #9ecaff;
+  --on-primary: #003258;
+  --primary-container: #004e85;
+  --on-primary-container: #8ac0ff;
+  
+  --secondary: #ffdf9e;
+  --on-secondary: #3f2e00;
+  --secondary-container: #fabd00;
+  --on-secondary-container: #6a4e00;
+  
+  --outline: #8d909d;
+  --outline-variant: #434652;
+  --on-surface-variant: #c3c6d4;
+  
+  --error: #ffb4ab;
+  --on-error: #690005;
+  --error-container: #93000a;
+  --on-error-container: #ffdad6;
+
+  --border-color: rgba(255, 255, 255, 0.08);
+  --primary-border: rgba(158, 202, 255, 0.2);
+  --secondary-border: rgba(255, 223, 158, 0.3);
+  
+  --primary-opacity-5: rgba(158, 202, 255, 0.05);
+  --primary-opacity-10: rgba(158, 202, 255, 0.1);
+  --primary-opacity-20: rgba(158, 202, 255, 0.2);
+  --primary-opacity-30: rgba(158, 202, 255, 0.3);
+  
+  --secondary-opacity-5: rgba(255, 223, 158, 0.05);
+  --secondary-opacity-10: rgba(255, 223, 158, 0.1);
+  
+  --error-opacity-5: rgba(255, 180, 171, 0.05);
+  --error-opacity-20: rgba(255, 180, 171, 0.2);
+  --error-opacity-30: rgba(255, 180, 171, 0.3);
+}
+
+.light {
+  /* Light mode values override */
+  --background: #f8f9fc;
+  --surface: #f8f9fc;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f0f3f8;
+  --surface-container: #e9eef4;
+  --surface-container-high: #dfe3ea;
+  --surface-container-highest: #d5d9e0;
+  --surface-bright: #f8f9fc;
+  --surface-dim: #dadde3;
+  
+  --on-surface: #191c20;
+  --on-background: #191c20;
+  
+  --primary: #0061a4;
+  --on-primary: #ffffff;
+  --primary-container: #d1e4ff;
+  --on-primary-container: #001d36;
+  
+  --secondary: #6a4e00;
+  --on-secondary: #ffffff;
+  --secondary-container: #ffdf9e;
+  --on-secondary-container: #261a00;
+  
+  --outline: #737785;
+  --outline-variant: #c3c6d4;
+  --on-surface-variant: #434652;
+  
+  --error: #ba1a1a;
+  --on-error: #ffffff;
+  --error-container: #ffdad6;
+  --on-error-container: #410002;
+
+  --border-color: rgba(0, 0, 0, 0.08);
+  --primary-border: rgba(0, 97, 164, 0.2);
+  --secondary-border: rgba(106, 78, 0, 0.3);
+  
+  --primary-opacity-5: rgba(0, 97, 164, 0.05);
+  --primary-opacity-10: rgba(0, 97, 164, 0.1);
+  --primary-opacity-20: rgba(0, 97, 164, 0.2);
+  --primary-opacity-30: rgba(0, 97, 164, 0.3);
+  
+  --secondary-opacity-5: rgba(106, 78, 0, 0.05);
+  --secondary-opacity-10: rgba(106, 78, 0, 0.1);
+  
+  --error-opacity-5: rgba(186, 26, 26, 0.05);
+  --error-opacity-20: rgba(186, 26, 26, 0.2);
+  --error-opacity-30: rgba(186, 26, 26, 0.3);
+}
+
 body {
   font-family: 'Inter', sans-serif;
-  background-color: #111316;
-  color: #e2e2e6;
+  background-color: var(--background);
+  color: var(--on-surface);
   min-height: 100dvh;
 }
 
@@ -22,12 +124,5 @@ body {
 
 /* Custom scrollbar */
 ::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: #0c0e11; }
-::-webkit-scrollbar-thumb { background: #333538; border-radius: 2px; }
-
-@media screen and (max-width: 42em) {
-  .side-bar {
-    display: none;
-  }
-  
-}
+::-webkit-scrollbar-track { background: var(--surface-container-lowest); }
+::-webkit-scrollbar-thumb { background: var(--surface-container-highest); border-radius: 2px; }

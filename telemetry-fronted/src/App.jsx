@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ProfileProvider } from './context/ProfileContext';
 import { FleetProvider } from './context/FleetContext';
 import { CrashProvider } from './context/CrashContext';  // Keep this
+import { ThemeProvider } from './context/ThemeContext';
 // REMOVE THIS LINE: import CrashAlertBanner from './components/CrashAlertBanner';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
@@ -122,16 +123,18 @@ function AppRoutes() {
 function App() {
   return (
     <Router>
-      <AuthProvider>
-        <ProfileProvider>
-          <FleetProvider>
-            <CrashProvider>
-              {/* REMOVED CrashAlertBanner from here - it's now in Layout */}
-              <AppRoutes />
-            </CrashProvider>
-          </FleetProvider>
-        </ProfileProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <ProfileProvider>
+            <FleetProvider>
+              <CrashProvider>
+                {/* REMOVED CrashAlertBanner from here - it's now in Layout */}
+                <AppRoutes />
+              </CrashProvider>
+            </FleetProvider>
+          </ProfileProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </Router>
   );
 }

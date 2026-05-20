@@ -6,6 +6,7 @@ import L from 'leaflet';
 import { api } from '../utils/api';
 import { useFleet } from '../context/FleetContext';
 import { useCrash } from '../context/CrashContext';
+import { useTheme } from '../context/ThemeContext';
 import DeviceSetupRequired from '../components/DeviceSetupRequired';
 
 // Fix for default marker icons in Leaflet
@@ -25,6 +26,13 @@ function ChangeView({ center, zoom }) {
 
 // ========== IMPROVED STOCK-STYLE CHART COMPONENT ==========
 const LiveChart = ({ data, crashPoint }) => {
+  const { theme } = useTheme();
+
+  // Dynamic theme colors for the SVG chart
+  const primaryColor = theme === 'light' ? '#0061a4' : '#9ecaff';
+  const secondaryColor = theme === 'light' ? '#6a4e00' : '#ffdf9e';
+  const gridColor = theme === 'light' ? 'rgba(0,0,0,0.08)' : '#282a2d';
+
   // Calculate dynamic domain for G-Force (0 to max + buffer)
   const maxGForce = data.length > 0 
     ? Math.max(...data.map(d => d.gForce), 0.5) 
@@ -91,23 +99,23 @@ const LiveChart = ({ data, crashPoint }) => {
         ? 'bg-red-500/20 border-red-500'
         : isSeverePoint
           ? 'bg-orange-500/20 border-orange-500'
-          : 'bg-[#1E2023] border-white/10';
+          : 'bg-surface-container border-border-theme';
 
       const velColor = isCriticalPoint
         ? 'text-red-400'
         : isSeverePoint
           ? 'text-orange-400'
-          : 'text-[#9ECAFF]';
+          : 'text-primary';
 
       const gColor = isCriticalPoint
         ? 'text-red-400'
         : isSeverePoint
           ? 'text-orange-400'
-          : 'text-[#FFDF9E]';
+          : 'text-secondary';
 
       return (
         <div className={`rounded-lg p-4 shadow-2xl border ${tooltipBgBorder}`}>
-          <div className="text-gray-400 text-[10px] mb-2 border-b border-white/10 pb-1">
+          <div className="text-outline text-[10px] mb-2 border-b border-border-theme pb-1">
             ⏱ {label}
           </div>
           <div className="flex items-center gap-4">
@@ -116,15 +124,15 @@ const LiveChart = ({ data, crashPoint }) => {
                 {velocityItem?.value ? velocityItem.value.toFixed(1) : '0'}
                 <span className="text-xs ml-1">KM/H</span>
               </div>
-              <div className="text-gray-500 text-[8px] uppercase tracking-wider">Velocity</div>
+              <div className="text-outline text-[8px] uppercase tracking-wider">Velocity</div>
             </div>
-            <div className="w-px h-8 bg-white/10" />
+            <div className="w-px h-8 bg-outline/20" />
             <div>
               <div className={`font-bold text-lg ${gColor}`}>
                 {gForceItem?.value ? gForceItem.value.toFixed(2) : '0'}
                 <span className="text-xs ml-1">G</span>
               </div>
-              <div className="text-gray-500 text-[8px] uppercase tracking-wider">G-Force</div>
+              <div className="text-outline text-[8px] uppercase tracking-wider">G-Force</div>
             </div>
           </div>
         </div>
@@ -135,7 +143,7 @@ const LiveChart = ({ data, crashPoint }) => {
 
   if (!data || data.length === 0) {
     return (
-      <div className="bg-surface-container rounded-2xl border border-white/5 p-6 mt-6">
+      <div className="bg-surface-container rounded-2xl border border-border-theme p-6 mt-6">
         <div className="flex items-center justify-between mb-6">
           <h3 className="font-headline text-xl font-bold text-on-surface">LIVE TELEMETRY</h3>
           <div className="flex items-center gap-2">
@@ -143,7 +151,7 @@ const LiveChart = ({ data, crashPoint }) => {
             <span className="text-[10px] text-green-400 uppercase tracking-wider">Waiting for data</span>
           </div>
         </div>
-        <div className="h-[380px] flex items-center justify-center text-gray-500 border border-white/5 rounded-xl bg-surface-container-low">
+        <div className="h-[380px] flex items-center justify-center text-outline border border-border-theme rounded-xl bg-surface-container-low">
           <div className="text-center">
             <span className="material-symbols-outlined text-5xl mb-2 block opacity-50">show_chart</span>
             <p className="text-sm">No data available. Waiting for telemetry...</p>
@@ -154,7 +162,7 @@ const LiveChart = ({ data, crashPoint }) => {
   }
 
   return (
-    <div className="bg-surface-container rounded-2xl border border-white/5 p-6 mt-6">
+    <div className="bg-surface-container rounded-2xl border border-border-theme p-6 mt-6">
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
           <h3 className="font-headline text-xl font-bold text-on-surface">TELEMETRY DATA</h3>
@@ -162,11 +170,11 @@ const LiveChart = ({ data, crashPoint }) => {
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-[#9ECAFF]" />
+            <div className="w-3 h-3 rounded-full bg-primary" />
             <span className="text-[10px] text-outline">Velocity (KM/H)</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-[#FFDF9E]" />
+            <div className="w-3 h-3 rounded-full bg-secondary" />
             <span className="text-[10px] text-outline">G-Force</span>
           </div>
           <div className="flex items-center gap-2">
@@ -181,30 +189,30 @@ const LiveChart = ({ data, crashPoint }) => {
           <ComposedChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="velocityGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#9ECAFF" stopOpacity={0.3}/>
-                <stop offset="95%" stopColor="#9ECAFF" stopOpacity={0}/>
+                <stop offset="5%" stopColor={primaryColor} stopOpacity={0.3}/>
+                <stop offset="95%" stopColor={primaryColor} stopOpacity={0}/>
               </linearGradient>
               <linearGradient id="gForceGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#FFDF9E" stopOpacity={0.3}/>
-                <stop offset="95%" stopColor="#FFDF9E" stopOpacity={0}/>
+                <stop offset="5%" stopColor={secondaryColor} stopOpacity={0.3}/>
+                <stop offset="95%" stopColor={secondaryColor} stopOpacity={0}/>
               </linearGradient>
             </defs>
             
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#282A2D" />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
             
             {/* Left Y-Axis for Velocity */}
             <YAxis 
               yAxisId="velocity"
               orientation="left"
               domain={velocityDomain}
-              tick={{ fill: '#9ECAFF', fontSize: 10 }}
+              tick={{ fill: primaryColor, fontSize: 10 }}
               tickLine={false}
-              axisLine={{ stroke: '#9ECAFF', strokeWidth: 1 }}
+              axisLine={{ stroke: primaryColor, strokeWidth: 1 }}
               label={{ 
                 value: 'KM/H', 
                 angle: -90, 
                 position: 'insideLeft', 
-                fill: '#9ECAFF',
+                fill: primaryColor,
                 fontSize: 10,
                 dy: 50
               }}
@@ -215,14 +223,14 @@ const LiveChart = ({ data, crashPoint }) => {
               yAxisId="gForce"
               orientation="right"
               domain={gForceDomain}
-              tick={{ fill: '#FFDF9E', fontSize: 10 }}
+              tick={{ fill: secondaryColor, fontSize: 10 }}
               tickLine={false}
-              axisLine={{ stroke: '#FFDF9E', strokeWidth: 1 }}
+              axisLine={{ stroke: secondaryColor, strokeWidth: 1 }}
               label={{ 
                 value: 'G-FORCE', 
                 angle: 90, 
                 position: 'insideRight', 
-                fill: '#FFDF9E',
+                fill: secondaryColor,
                 fontSize: 10,
                 dy: -50
               }}
@@ -245,7 +253,7 @@ const LiveChart = ({ data, crashPoint }) => {
               yAxisId="velocity"
               type="monotone"
               dataKey="velocity"
-              stroke="#9ECAFF"
+              stroke={primaryColor}
               strokeWidth={0}
               fill="url(#velocityGradient)"
             />
@@ -255,10 +263,10 @@ const LiveChart = ({ data, crashPoint }) => {
               yAxisId="velocity"
               type="monotone"
               dataKey="velocity"
-              stroke="#9ECAFF"
+              stroke={primaryColor}
               strokeWidth={2.5}
               dot={false}
-              activeDot={{ r: 5, fill: '#9ECAFF', stroke: '#fff', strokeWidth: 1.5 }}
+              activeDot={{ r: 5, fill: primaryColor, stroke: '#fff', strokeWidth: 1.5 }}
               isAnimationActive={true}
               animationDuration={300}
               animationEasing="ease-out"
@@ -269,7 +277,7 @@ const LiveChart = ({ data, crashPoint }) => {
               yAxisId="gForce"
               type="monotone"
               dataKey="gForce"
-              stroke="#FFDF9E"
+              stroke={secondaryColor}
               strokeWidth={0}
               fill="url(#gForceGradient)"
             />
@@ -279,10 +287,10 @@ const LiveChart = ({ data, crashPoint }) => {
               yAxisId="gForce"
               type="monotone"
               dataKey="gForce"
-              stroke="#FFDF9E"
+              stroke={secondaryColor}
               strokeWidth={2}
               dot={renderCrashDot}
-              activeDot={{ r: 5, fill: '#FFDF9E', stroke: '#fff', strokeWidth: 1.5 }}
+              activeDot={{ r: 5, fill: secondaryColor, stroke: '#fff', strokeWidth: 1.5 }}
               isAnimationActive={true}
               animationDuration={300}
               animationEasing="ease-out"
@@ -292,23 +300,23 @@ const LiveChart = ({ data, crashPoint }) => {
       </div>
       
       {/* Mini stats below chart */}
-      <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-white/5">
+      <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-border-theme">
         <div className="text-center">
-          <div className="text-[#9ECAFF] text-lg font-bold">
+          <div className="text-primary text-lg font-bold">
             {data.length > 0 ? data[data.length - 1]?.velocity?.toFixed(1) : '0'}
             <span className="text-xs ml-1 text-outline">KM/H</span>
           </div>
           <div className="text-[9px] text-outline uppercase tracking-wider">Current Speed</div>
         </div>
         <div className="text-center">
-          <div className="text-[#FFDF9E] text-lg font-bold">
+          <div className="text-secondary text-lg font-bold">
             {data.length > 0 ? data[data.length - 1]?.gForce?.toFixed(2) : '0'}
             <span className="text-xs ml-1 text-outline">G</span>
           </div>
           <div className="text-[9px] text-outline uppercase tracking-wider">Current G-Force</div>
         </div>
         <div className="text-center">
-          <div className="text-white text-lg font-bold">
+          <div className="text-on-surface text-lg font-bold">
             {data.length}
             <span className="text-xs ml-1 text-outline">pts</span>
           </div>
@@ -323,6 +331,7 @@ const LiveChart = ({ data, crashPoint }) => {
 export default function Dashboard() {
   const { activeDeviceId, hasActiveDevice, existsInTelemetry, loading: fleetLoading, isAdmin } = useFleet();
   const { mapCrashPoint, graphCrashPoint } = useCrash();
+  const { theme } = useTheme();
   const [telemetry, setTelemetry] = useState(null);
   const [chartData, setChartData] = useState([]);
   const [latency, setLatency] = useState(0);
@@ -483,7 +492,7 @@ export default function Dashboard() {
   }, [activeDeviceId, hasActiveDevice, timeframe]);
 
   if (fleetLoading || !dataReady) {
-    return <div className="text-white p-8 text-center animate-pulse">Loading...</div>;
+    return <div className="text-on-surface p-8 text-center animate-pulse">Loading...</div>;
   }
 
   if (!hasActiveDevice) {
@@ -502,9 +511,9 @@ export default function Dashboard() {
 
   if (!telemetry) {
     return (
-      <div className="p-8 max-w-[1600px] mx-auto w-full text-white space-y-6">
+      <div className="p-4 md:p-8 max-w-[1600px] mx-auto w-full text-on-surface space-y-6">
         <h1 className="text-3xl font-black uppercase">Live Telemetry: {activeDeviceId}</h1>
-        <div className="p-8 rounded-xl border border-white/10 bg-surface-container text-center space-y-3">
+        <div className="p-6 md:p-8 rounded-xl border border-border-theme bg-surface-container text-center space-y-3">
           <span className="material-symbols-outlined text-4xl text-outline">sensors_off</span>
           <p className="text-lg font-bold">No telemetry records for this device ID</p>
           <p className="text-sm text-outline">Showing 0 data. In Admin, click VX-9902 to view existing MongoDB telemetry.</p>
@@ -526,13 +535,13 @@ export default function Dashboard() {
   const isCrashed = (telemetry.imu?.peak_g || 0) > 3.4;
 
   return (
-    <div className="p-8 max-w-[1600px] mx-auto w-full text-white">
+    <div className="p-4 md:p-8 max-w-[1600px] mx-auto w-full text-on-surface">
       <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
         <div>
           <h1 className="text-3xl font-black uppercase tracking-tight">Live Telemetry</h1>
           <p className="text-sm text-outline mt-1">Device: <span className="font-mono text-primary">{activeDeviceId}</span></p>
         </div>
-        <div className="text-sm text-outline bg-surface-container px-3 py-1 rounded">
+        <div className="text-sm text-outline bg-surface-container px-3 py-1 rounded border border-border-theme">
           🖥️ {currentLocalTime}
         </div>
       </div>
@@ -544,17 +553,17 @@ export default function Dashboard() {
         <div className="px-4 py-2 bg-surface-container-high rounded font-bold text-xs text-primary">
           SATELLITES: {telemetry.gps?.satellites || 0}
         </div>
-        <div className="px-4 py-2 bg-surface-container-high rounded font-bold text-xs text-secondary border border-secondary/30">
+        <div className="px-4 py-2 bg-surface-container-high rounded font-bold text-xs text-secondary border border-secondary-border">
           LATENCY: {latency > 3000 ? "OFFLINE" : `${latency} ms`}
         </div>
-        <div className="px-4 py-2 bg-surface-container-high rounded font-bold text-xs text-info">
+        <div className="px-4 py-2 bg-surface-container-high rounded font-bold text-xs text-outline">
           Last updated: {dataTimestamp}
         </div>
       </div>
 
       {/* Map Section with Crash Circle */}
-      <div className="bg-surface-container rounded-xl border border-white/5 overflow-hidden mb-6">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-outline-variant/20 bg-surface-container-high/50">
+      <div className="bg-surface-container rounded-xl border border-border-theme overflow-hidden mb-6">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border-theme bg-surface-container-high/50">
           <div className="flex items-center gap-2">
             <span className={`material-symbols-outlined ${isCrashed ? 'text-red-500' : 'text-primary'}`}>map</span>
             <span className="font-headline font-bold uppercase tracking-tight text-on-surface">
@@ -580,13 +589,16 @@ export default function Dashboard() {
             zoom={15}
             scrollWheelZoom={true}
             className="h-full w-full"
-            style={{ zIndex: 0, background: '#1a1a1a' }}
+            style={{ zIndex: 0, background: theme === 'light' ? '#f8f9fc' : '#1a1a1a' }}
           >
             <ChangeView center={[telemetry.gps?.latitude || 0, telemetry.gps?.longitude || 0]} zoom={15} />
             
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+              url={theme === 'light' 
+                ? "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+                : "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+              }
             />
             
             {/* Current vehicle marker */}
@@ -642,12 +654,12 @@ export default function Dashboard() {
 
           {/* Map overlay HUD */}
           <div className="absolute bottom-4 left-4 flex flex-col gap-2 z-[1000] pointer-events-none">
-            <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10">
+            <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg border border-border-theme">
               <span className="font-label text-[10px] font-bold text-primary tracking-widest uppercase">
                 📍 LAT: {telemetry.gps?.latitude?.toFixed(6) || '0'}, LNG: {telemetry.gps?.longitude?.toFixed(6) || '0'}
               </span>
             </div>
-            <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10">
+            <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg border border-border-theme">
               <span className="font-label text-[10px] font-bold tracking-widest uppercase text-green-400">
                 🛰️ SPEED: {telemetry.gps?.velocity_kmh?.toFixed(1) || 0} KM/H
               </span>
@@ -664,24 +676,24 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-        <div className={`p-6 rounded-xl border md:col-span-2 ${(telemetry.imu?.peak_g || 0) > 20 ? 'bg-red-500/20 border-red-500' : (telemetry.imu?.peak_g || 0) > 8 ? 'bg-yellow-500/20 border-yellow-500' : 'bg-surface-container border-white/5'}`}>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className={`p-6 rounded-xl border col-span-full md:col-span-2 ${(telemetry.imu?.peak_g || 0) > 20 ? 'bg-red-500/20 border-red-500' : (telemetry.imu?.peak_g || 0) > 8 ? 'bg-yellow-500/20 border-yellow-500' : 'bg-surface-container border-border-theme'}`}>
           <p className="text-xs text-outline uppercase tracking-widest mb-2">Peak G-Force</p>
-          <p className={`text-4xl font-bold ${(telemetry.imu?.peak_g || 0) > 20 ? 'text-red-500 animate-pulse' : (telemetry.imu?.peak_g || 0) > 8 ? 'text-yellow-500 animate-pulse' : 'text-white'}`}>
+          <p className={`text-4xl font-bold ${(telemetry.imu?.peak_g || 0) > 20 ? 'text-red-500 animate-pulse' : (telemetry.imu?.peak_g || 0) > 8 ? 'text-yellow-500 animate-pulse' : 'text-on-surface'}`}>
             {(telemetry.imu?.peak_g || 0).toFixed(3)} <span className="text-sm">g</span>
           </p>
           {(telemetry.imu?.peak_g || 0) > 20 && <p className="text-xs text-red-500 font-bold mt-2">SEVERITY DETECTED</p>}
           {(telemetry.imu?.peak_g || 0) > 8 && (telemetry.imu?.peak_g || 0) <= 20 && <p className="text-xs text-yellow-500 font-bold mt-2">HEAVY IMPACT</p>}
         </div>
 
-        <div className="bg-surface-container p-6 rounded-xl border border-white/5 md:col-span-2">
+        <div className="bg-surface-container p-6 rounded-xl border border-border-theme col-span-full md:col-span-2">
           <p className="text-xs text-outline uppercase tracking-widest mb-2">Velocity</p>
           <p className="text-4xl font-bold text-primary">
             {(telemetry.gps?.velocity_kmh || 0).toFixed(1)} <span className="text-sm text-outline">km/h</span>
           </p>
         </div>
         
-        <div className="bg-surface-container p-6 rounded-xl border border-white/5 col-span-full">
+        <div className="bg-surface-container p-6 rounded-xl border border-border-theme col-span-full">
           <p className="text-xs text-outline uppercase tracking-widest mb-2">Live Coordinates</p>
           <div className="flex items-center gap-4">
             <span className="text-2xl font-mono">{(telemetry.gps?.latitude || 0).toFixed(6)}, {(telemetry.gps?.longitude || 0).toFixed(6)}</span>
@@ -694,7 +706,7 @@ export default function Dashboard() {
       
       {/* Timeframe selector */}
       <div className="mt-8 mb-4 flex justify-end">
-        <div className="bg-surface-container rounded-lg p-1 flex gap-2 border border-white/5">
+        <div className="bg-surface-container rounded-lg p-1 flex gap-2 border border-border-theme">
           {[
             { label: 'Live (60s)', val: 0 },
             { label: '1 Week', val: 1 },
@@ -706,7 +718,7 @@ export default function Dashboard() {
               key={tf.val}
               onClick={() => setTimeframe(tf.val)}
               className={`px-4 py-2 text-xs font-bold rounded-md transition-all ${
-                timeframe === tf.val ? 'bg-primary text-on-primary' : 'text-outline hover:text-white'
+                timeframe === tf.val ? 'bg-primary text-on-primary' : 'text-outline hover:text-on-surface'
               }`}
             >
               {tf.label}

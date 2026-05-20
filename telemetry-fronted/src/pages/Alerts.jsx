@@ -173,7 +173,7 @@ export default function Alerts() {
   });
 
   return (
-    <div className="p-8 max-w-4xl mx-auto w-full flex flex-col gap-6">
+    <div className="p-4 md:p-8 max-w-4xl mx-auto w-full flex flex-col gap-6">
       {/* Header with tabs */}
       <div className="flex justify-between items-end">
         <div>
@@ -190,7 +190,7 @@ export default function Alerts() {
           <button
             onClick={() => setShowHistory(false)}
             className={`px-4 py-2 text-xs font-bold rounded-md transition-all ${
-              !showHistory ? 'bg-primary text-on-primary' : 'text-outline hover:text-white'
+              !showHistory ? 'bg-primary text-on-primary' : 'text-outline hover:text-on-surface'
             }`}
           >
             Live Alerts
@@ -198,7 +198,7 @@ export default function Alerts() {
           <button
             onClick={() => setShowHistory(true)}
             className={`px-4 py-2 text-xs font-bold rounded-md transition-all ${
-              showHistory ? 'bg-primary text-on-primary' : 'text-outline hover:text-white'
+              showHistory ? 'bg-primary text-on-primary' : 'text-outline hover:text-on-surface'
             }`}
           >
             History ({historyAlerts.length})
@@ -207,9 +207,9 @@ export default function Alerts() {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-4 flex-wrap bg-surface-container/50 p-3 rounded-lg border border-white/5">
+      <div className="flex gap-4 flex-wrap bg-surface-container/50 p-3 rounded-lg border border-border-theme">
         <select 
-          className="bg-surface-container border border-white/10 text-white text-xs font-bold tracking-wider uppercase rounded px-3 py-2 outline-none focus:border-primary"
+          className="bg-surface-container border border-border-theme text-on-surface text-xs font-bold tracking-wider uppercase rounded px-3 py-2 outline-none focus:border-primary"
           value={smsFilter}
           onChange={(e) => setSmsFilter(e.target.value)}
         >
@@ -219,7 +219,7 @@ export default function Alerts() {
         </select>
         
         <select 
-          className="bg-surface-container border border-white/10 text-white text-xs font-bold tracking-wider uppercase rounded px-3 py-2 outline-none focus:border-primary"
+          className="bg-surface-container border border-border-theme text-on-surface text-xs font-bold tracking-wider uppercase rounded px-3 py-2 outline-none focus:border-primary"
           value={gValueFilter}
           onChange={(e) => setGValueFilter(e.target.value)}
         >
@@ -260,7 +260,7 @@ export default function Alerts() {
                         </span>
                       </div>
                       
-                      <p className="font-headline font-bold text-sm text-white">
+                      <p className="font-headline font-bold text-sm text-on-surface">
                         {severity === 'none' ? 'Spike detected' : `${severity} impact`}
                       </p>
                       <p className="text-xs mt-1 opacity-80 text-outline">
@@ -293,7 +293,7 @@ export default function Alerts() {
       {showHistory && (
         <>
           {filteredHistory.length === 0 ? (
-            <div className="p-12 text-center rounded-xl border border-outline-variant/20 bg-surface-container">
+            <div className="p-12 text-center rounded-xl border border-border-theme bg-surface-container">
               <span className="material-symbols-outlined text-5xl text-secondary mb-4 block">history</span>
               <p className="text-sm text-outline">No crash history matched the filters.</p>
             </div>
@@ -338,7 +338,7 @@ export default function Alerts() {
                           )}
                         </div>
                         
-                        <p className="font-headline font-bold text-sm text-white mt-2">
+                        <p className="font-headline font-bold text-sm text-on-surface mt-2">
                           Vehicle: {crash.deviceId}
                         </p>
                         <p className="text-xs text-outline mt-1">

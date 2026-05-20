@@ -85,7 +85,7 @@ export default function Admin() {
   }
 
   return (
-    <div className="p-8 max-w-[1600px] mx-auto w-full">
+    <div className="p-4 md:p-8 max-w-[1600px] mx-auto w-full">
       <header className="mb-8 border-l-2 border-primary pl-6">
         <h1 className="text-3xl font-bold headline-font tracking-tight uppercase">GLOBAL FLEET OVERVIEW</h1>
         <p className="text-outline uppercase text-xs tracking-[0.2em] mt-1 font-label">
@@ -101,7 +101,7 @@ export default function Admin() {
       )}
 
       {selectedDeviceId && stats?.totalTelemetryRecords === 0 && telemetryDeviceIds.length > 0 && (
-        <div className="mb-6 p-4 rounded-lg border border-secondary/50 bg-secondary/10 text-sm">
+        <div className="mb-6 p-4 rounded-lg border border-secondary-border bg-secondary-opacity-10 text-sm">
           <p className="font-bold text-secondary">
             No telemetry in MongoDB for &quot;{selectedDeviceId}&quot;
           </p>
@@ -115,7 +115,7 @@ export default function Admin() {
       )}
 
       {telemetryDeviceIds.length > 0 && (
-        <div className="mb-6 p-4 rounded-lg border border-primary/30 bg-primary/5 text-sm text-on-surface-variant">
+        <div className="mb-6 p-4 rounded-lg border border-primary-border bg-primary-opacity-5 text-sm text-on-surface-variant">
           <span className="font-bold text-primary">Device IDs with telemetry in MongoDB — click to load data: </span>
           <span className="flex flex-wrap gap-2 mt-2">
             {telemetryDeviceIds.map((id) => (
@@ -126,7 +126,7 @@ export default function Admin() {
                 className={`px-3 py-1 rounded font-mono text-xs border transition-colors ${
                   selectedDeviceId === id
                     ? 'bg-primary text-on-primary border-primary'
-                    : 'bg-primary/20 text-primary border-primary/30 hover:bg-primary/30'
+                    : 'bg-primary-opacity-20 text-primary border-primary-border hover:bg-primary-opacity-30'
                 }`}
               >
                 {id}
@@ -140,7 +140,7 @@ export default function Admin() {
       )}
 
       {!selectedDeviceId && (
-        <div className="mb-6 p-4 rounded-lg border border-outline-variant/30 bg-surface-container text-sm text-outline text-center">
+        <div className="mb-6 p-4 rounded-lg border border-border-theme bg-surface-container text-sm text-outline text-center">
           No vehicle selected — telemetry stats and alerts show 0. Select a Device ID or fleet row below.
         </div>
       )}
@@ -192,7 +192,7 @@ export default function Admin() {
         </div>
 
         <div className="col-span-12 lg:col-span-8 bg-surface-container rounded-lg overflow-hidden min-h-[350px] flex flex-col">
-          <div className="p-6 border-b border-outline-variant/10 flex justify-between items-center gap-4 flex-wrap">
+          <div className="p-6 border-b border-border-theme flex justify-between items-center gap-4 flex-wrap">
             <div>
               <label className="text-[10px] uppercase tracking-[0.2em] text-outline font-label block mb-1">
                 VEHICLE ROSTER
@@ -204,7 +204,7 @@ export default function Admin() {
               type="button"
               onClick={() => setSelectedDeviceId(null)}
               disabled={!selectedDeviceId}
-              className="px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-lg border border-outline-variant/30 text-outline hover:text-primary hover:border-primary/50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="px-4 py-2 text-xs font-bold uppercase tracking-widest rounded-lg border border-border-theme text-outline hover:text-primary hover:border-primary/50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Clear selection
             </button>
@@ -268,7 +268,7 @@ export default function Admin() {
         </div>
 
         <div className="col-span-12 bg-surface-container rounded-lg overflow-hidden">
-          <div className="px-6 py-5 border-b border-outline-variant/10">
+          <div className="px-6 py-5 border-b border-border-theme">
             <h2 className="text-xl font-bold headline-font">
               {selectedDeviceId
                 ? `RECENT HIGH-G ALERTS — ${selectedDeviceId}`
@@ -286,7 +286,7 @@ export default function Admin() {
                   <th className="px-6 py-3 text-[10px] font-bold text-outline uppercase tracking-widest font-label">Location</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-outline-variant/10">
+              <tbody className="divide-y divide-border-theme/40">
                 {incidents.length > 0 ? (
                   incidents.map((incident) => {
                     const eventType = getIncidentType(incident.imu?.peak_g ?? 0);

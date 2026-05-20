@@ -22,7 +22,7 @@ export default function CrashAlertBanner() {
 
   return (
     <div className="w-full shrink-0 z-40 animate-in slide-in-from-top duration-300">
-      <div className={`mx-8 mt-4 p-4 rounded-xl border-2 ${bgColor} shadow-2xl`}>
+      <div className={`mx-4 md:mx-8 mt-4 p-4 rounded-xl border-2 ${bgColor} shadow-2xl`}>
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div className="bg-red-500/20 p-3 rounded-full">
