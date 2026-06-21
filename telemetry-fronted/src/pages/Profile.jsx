@@ -69,7 +69,7 @@ export default function Profile() {
   const messageText = saveMessage.replace(/^(success|error):/, '');
 
   return (
-    <div className="p-8 max-w-[1200px] mx-auto w-full flex flex-col gap-8">
+    <div className="p-4 md:p-8 max-w-[1200px] mx-auto w-full flex flex-col gap-8">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 shrink-0">
         <div>
           <h1 className="font-headline text-3xl font-black tracking-tighter text-on-surface uppercase">
@@ -104,7 +104,7 @@ export default function Profile() {
       )}
 
       {telemetryDeviceIds.length > 0 && (
-        <div className="p-4 rounded-lg border border-secondary/30 bg-secondary/5 text-sm text-on-surface-variant">
+        <div className="p-4 rounded-lg border border-secondary-border bg-secondary-opacity-5 text-sm text-on-surface-variant">
           <span className="font-bold text-secondary">Telemetry in MongoDB uses device ID: </span>
           <span className="flex flex-wrap gap-2 mt-2">
             {telemetryDeviceIds.map((id) => (
@@ -112,7 +112,7 @@ export default function Profile() {
                 key={id}
                 type="button"
                 onClick={() => setDeviceId(id)}
-                className="px-3 py-1 rounded font-mono text-xs bg-primary/20 text-primary hover:bg-primary/30 border border-primary/30"
+                className="px-3 py-1 rounded font-mono text-xs bg-primary-opacity-20 text-primary hover:bg-primary-opacity-30 border border-primary-border"
               >
                 Use {id}
               </button>
@@ -125,7 +125,7 @@ export default function Profile() {
       )}
 
       {!hasDevice && !loading && (
-        <div className="p-4 rounded-lg border border-primary/30 bg-primary/5 text-sm text-primary">
+        <div className="p-4 rounded-lg border border-primary-border bg-primary-opacity-5 text-sm text-primary">
           Add your hardware Device ID below and save. Other pages stay empty until a device ID is set.
         </div>
       )}
@@ -137,7 +137,7 @@ export default function Profile() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           <div className="lg:col-span-4">
-            <div className="bg-surface-container rounded-2xl border border-white/5 p-8 relative overflow-hidden shadow-xl">
+            <div className="bg-surface-container rounded-2xl border border-border-theme p-8 relative overflow-hidden shadow-xl">
               <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
                 <span className="material-symbols-outlined text-9xl">fingerprint</span>
               </div>
@@ -150,7 +150,7 @@ export default function Profile() {
                   <h2 className="font-headline text-3xl font-bold text-on-surface">
                     {driverName || user?.username || 'Operator Name'}
                   </h2>
-                  <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 bg-surface-container-lowest border border-white/5 rounded-lg text-xs font-mono text-primary">
+                  <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 bg-surface-container-lowest border border-border-theme rounded-lg text-xs font-mono text-primary">
                     <span className="material-symbols-outlined text-sm">memory</span>
                     DEVICE ID: {deviceId.trim() || '—'}
                   </div>
@@ -160,8 +160,8 @@ export default function Profile() {
           </div>
 
           <div className="lg:col-span-8 space-y-8">
-            <div className="bg-surface-container rounded-2xl border border-white/5 p-8 shadow-lg">
-              <div className="flex items-center gap-3 mb-6 border-b border-white/5 pb-4">
+            <div className="bg-surface-container rounded-2xl border border-border-theme p-8 shadow-lg">
+              <div className="flex items-center gap-3 mb-6 border-b border-border-theme pb-4">
                 <span className="material-symbols-outlined text-primary">person</span>
                 <h3 className="font-headline text-lg font-bold text-on-surface uppercase tracking-tight">
                   General Information
@@ -178,7 +178,7 @@ export default function Profile() {
                       value={driverName}
                       onChange={(e) => setDriverName(e.target.value)}
                       placeholder="Enter full name"
-                      className="w-full bg-surface-container-lowest border border-white/5 text-on-surface text-sm pl-10 pr-4 py-3 rounded-lg focus:ring-1 focus:ring-primary outline-none transition-all"
+                      className="w-full bg-surface-container-lowest border border-border-theme text-on-surface text-sm pl-10 pr-4 py-3 rounded-lg focus:ring-1 focus:ring-primary outline-none transition-all"
                     />
                   </div>
                 </div>
@@ -192,7 +192,7 @@ export default function Profile() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="driver@company.com"
-                      className="w-full bg-surface-container-lowest border border-white/5 text-on-surface text-sm pl-10 pr-4 py-3 rounded-lg focus:ring-1 focus:ring-primary outline-none transition-all"
+                      className="w-full bg-surface-container-lowest border border-border-theme text-on-surface text-sm pl-10 pr-4 py-3 rounded-lg focus:ring-1 focus:ring-primary outline-none transition-all"
                     />
                   </div>
                 </div>
@@ -208,7 +208,7 @@ export default function Profile() {
                       value={deviceId}
                       onChange={(e) => setDeviceId(e.target.value)}
                       placeholder="e.g. VX-9902"
-                      className="w-full bg-surface-container-lowest border border-white/5 text-on-surface font-mono text-sm pl-10 pr-4 py-3 rounded-lg focus:ring-1 focus:ring-primary outline-none transition-all"
+                      className="w-full bg-surface-container-lowest border border-border-theme text-on-surface font-mono text-sm pl-10 pr-4 py-3 rounded-lg focus:ring-1 focus:ring-primary outline-none transition-all"
                     />
                   </div>
                   <p className="text-[10px] text-outline-variant mt-1">
@@ -218,10 +218,10 @@ export default function Profile() {
               </div>
             </div>
 
-            <div className="bg-surface-container rounded-2xl border-l-4 border-error border-y border-r border-white/5 p-8 relative overflow-hidden shadow-[0_0_30px_rgba(255,180,171,0.03)]">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-error/5 rounded-full blur-3xl pointer-events-none -translate-y-1/2 translate-x-1/2"></div>
+            <div className="bg-surface-container rounded-2xl border-l-4 border-error border-y border-r border-border-theme p-8 relative overflow-hidden shadow-[0_0_30px_rgba(255,180,171,0.03)]">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-error-opacity-5 rounded-full blur-3xl pointer-events-none -translate-y-1/2 translate-x-1/2"></div>
 
-              <div className="flex items-center gap-3 mb-4 relative z-10 border-b border-error/20 pb-4">
+              <div className="flex items-center gap-3 mb-4 relative z-10 border-b border-error-opacity-20 pb-4">
                 <div className="p-2 bg-error/10 rounded-lg">
                   <span className="material-symbols-outlined text-error" style={{ fontVariationSettings: "'FILL' 1" }}>
                     emergency_recording
@@ -253,7 +253,7 @@ export default function Profile() {
                       value={emergencyNumber}
                       onChange={(e) => setEmergencyNumber(e.target.value)}
                       placeholder="+1 (800) 555-0199"
-                      className="w-full bg-error/5 border border-error/30 text-on-surface font-mono text-sm pl-10 pr-4 py-4 rounded-lg focus:ring-1 focus:ring-error transition-all outline-none"
+                      className="w-full bg-error-opacity-5 border border-error-opacity-30 text-on-surface font-mono text-sm pl-10 pr-4 py-4 rounded-lg focus:ring-1 focus:ring-error transition-all outline-none"
                     />
                   </div>
                   <p className="text-[10px] text-outline-variant mt-1">

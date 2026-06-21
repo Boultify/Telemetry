@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ path: require('path').resolve(__dirname, '.env') });
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -129,6 +129,7 @@ const profileSchema = new mongoose.Schema({
   email: String,
   emergencyNumber: { type: String, default: '' },
   hasCrashed: { type: Boolean, default: false },
+  lastSmsSentAt: { type: Date, default: null },
   updatedAt: { type: Date, default: Date.now }
 });
 const Profile = mongoose.model('Profile', profileSchema);
@@ -240,25 +241,27 @@ app.post('/api/telemetry', async (req, res) => {
     });
     await newLog.save();
 
-    if (spikeDetected && deltaG >= 7 && twilioClient) {
+    if (spikeDetected && deltaG >= 7) {
       const profile = await Profile.findOne({ deviceId: data.device_id });
       if (profile && profile.emergencyNumber && !profile.hasCrashed) {
-        console.log(`🚨 [CRASH DETECTED] Calling ${profile.emergencyNumber}...`);
         profile.hasCrashed = true;
         await profile.save();
 
-        try {
-          await twilioClient.calls.create({
-            twiml: `<Response>
-                      <Say voice="alice">Emergency Alert. Vehicle ${data.device_id} driven by ${profile.driverName} has experienced a sudden impact spike of ${deltaG.toFixed(1)} G change, classified as ${severity}.</Say>
-                      <Say voice="alice">Last known GPS coordinates are Latitude ${data.gps.latitude}, Longitude ${data.gps.longitude}. Please dispatch help immediately.</Say>
-                    </Response>`,
-            to: profile.emergencyNumber,
-            from: process.env.TWILIO_PHONE_NUMBER
-          });
-          console.log(`📞 [CALL SUCCESS] Emergency call initiated.`);
-        } catch (twilioError) {
-          console.error("Twilio call failed:", twilioError.message);
+        if (twilioClient) {
+          console.log(`🚨 [CRASH DETECTED] Calling ${profile.emergencyNumber} via Twilio...`);
+          try {
+            await twilioClient.calls.create({
+              twiml: `<Response>
+                        <Say voice="alice">Emergency Alert. Vehicle ${data.device_id} driven by ${profile.driverName} has experienced a sudden impact spike of ${deltaG.toFixed(1)} G change, classified as ${severity}.</Say>
+                        <Say voice="alice">Last known GPS coordinates are Latitude ${data.gps.latitude}, Longitude ${data.gps.longitude}. Please dispatch help immediately.</Say>
+                      </Response>`,
+              to: profile.emergencyNumber,
+              from: process.env.TWILIO_PHONE_NUMBER
+            });
+            console.log(`📞 [CALL SUCCESS] Emergency call initiated.`);
+          } catch (twilioError) {
+            console.error("Twilio call failed:", twilioError.message);
+          }
         }
       }
     }
@@ -440,6 +443,7 @@ app.post('/api/profile', authenticateToken, async (req, res) => {
           emergencyNumber: (emergencyNumber || '').replace(/\s+/g, ''),
           deviceId: trimmedDeviceId,
           hasCrashed: false,
+          lastSmsSentAt: null,
           updatedAt: new Date()
         }
       },
@@ -562,14 +566,16 @@ app.post('/api/alert/sms', authenticateToken, async (req, res) => {
       return res.status(500).json({ error: 'Twilio not configured on server.' });
     }
 
-    // Lock to prevent multiple tabs sending duplicate SMS
-    if (profile.hasCrashed) {
+    // Lock to prevent multiple tabs sending duplicate SMS (cooldown: 60 seconds)
+    const oneMinuteAgo = new Date(Date.now() - 60000);
+    if (profile.lastSmsSentAt && profile.lastSmsSentAt > oneMinuteAgo) {
       console.log(`[SMS IGNORED] SMS already sent recently for ${deviceId}. Ignoring duplicate request.`);
-      return res.status(200).json({ success: true, message: 'SMS already sent' });
+      return res.status(200).json({ success: true, message: 'SMS already sent recently' });
     }
     
-    // Mark as crashed to lock it
+    // Mark as crashed and record the SMS timestamp to lock it
     profile.hasCrashed = true;
+    profile.lastSmsSentAt = new Date();
     await profile.save();
 
     const locationText = lat && lng
